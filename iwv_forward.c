@@ -1,6 +1,14 @@
 #include <stdio.h>
 #include <errno.h>
 
+#if _MSC_VER
+#include <winsock2.h>
+#pragma comment(lib,"ws2_32.lib") //Winsock Library
+#endif
+
+#define TARGET_ADDR "192.168.1.255"
+#define TARGET_PORT 5001
+
 #ifdef __GNUC__
 errno_t fopen_s(FILE **f, const char *name, const char *mode) {
     errno_t ret = 0;
@@ -11,6 +19,54 @@ errno_t fopen_s(FILE **f, const char *name, const char *mode) {
     return ret;
 }
 #endif
+
+#if _MSC_VER
+
+typedef struct {
+    int socket;
+    struct sockaddr_in address;
+} socket_handle_t;
+
+void init_socks() {
+    static WSADATA wsa;
+    printf("\nInitialising Winsock...");
+    if (WSAStartup(MAKEWORD(2,2),&wsa) != 0)
+	{
+		printf("Failed. Error Code : %d",WSAGetLastError());
+		exit(EXIT_FAILURE);
+	}
+	printf("Initialised.\n");
+}
+
+socket_handle_t open_socket() {
+    socket_handle_t h;
+	if ( (h.socket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
+	{
+		printf("socket() failed with error code : %d" , WSAGetLastError());
+		exit(EXIT_FAILURE);
+	}
+	memset((char *) &h.address, 0, sizeof(h.address));
+	h.address.sin_family = AF_INET;
+	h.address.sin_port = htons(TARGET_PORT);
+	h.address.sin_addr.S_un.S_addr = inet_addr(TARGET_ADDR);
+    return h;
+}
+
+void close_socks() {
+    WSACleanup();
+}
+
+int udp_push(socket_handle_t* h, char* msg) {
+    printf("%s", msg);
+
+    if (sendto(h->socket, msg, strlen(msg) , 0 , (struct sockaddr *) &(h->address), sizeof(h->address)) == SOCKET_ERROR) {
+        printf("sendto() failed with error code : %d" , WSAGetLastError());
+        return -1;
+	}
+    return 0;
+}
+
+#else
 
 void init_socks() {}
 
@@ -30,6 +86,8 @@ int udp_push(socket_handle_t* h, char* msg) {
 }
 
 void close_socks() {}
+
+#endif
 
 int is_leap_year(int year) {
     return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
