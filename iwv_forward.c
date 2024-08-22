@@ -1,4 +1,16 @@
 #include <stdio.h>
+#include <errno.h>
+
+#ifdef __GNUC__
+errno_t fopen_s(FILE **f, const char *name, const char *mode) {
+    errno_t ret = 0;
+    *f = fopen(name, mode);
+    /* Can't be sure about 1-to-1 mapping of errno and MS' errno_t */
+    if (!*f)
+        ret = errno;
+    return ret;
+}
+#endif
 
 int udp_push(char* msg) {
     printf("%s", msg);
@@ -40,7 +52,12 @@ int main(int argc, char** argv) {
         printf("too few arguments, need IWV filename!\n");
         return -1;
     }
-    FILE * handle = fopen(argv[1], "rb");
+    char * filename = argv[1];
+    FILE * handle;
+    if(fopen_s(&handle, filename, "rb") != 0) {
+        printf("can't open '%s'", filename);
+        return -1;
+    }
     fseek(handle, 0, SEEK_END);
     long size = ftell(handle);
     printf("file size: %ld\n", size);
@@ -80,6 +97,6 @@ int main(int argc, char** argv) {
     int day = days_left + 1;
 
     char textbuffer[100];
-    sprintf(textbuffer, "KV,%04d-%02d-%02dT%02d:%02d:%02d,%f\r\n", year, month, day, hours, minutes, seconds, value);
+    snprintf(textbuffer, 100, "KV,%04d-%02d-%02dT%02d:%02d:%02d,%f\r\n", year, month, day, hours, minutes, seconds, value);
     udp_push(textbuffer);
 }
