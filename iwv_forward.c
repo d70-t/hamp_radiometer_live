@@ -5,10 +5,11 @@
 
 #if _MSC_VER
 
-#include <Windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
+
+#include <Windows.h>
 
 #else
 
