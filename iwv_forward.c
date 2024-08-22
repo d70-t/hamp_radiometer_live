@@ -65,7 +65,7 @@ void close_socks() {
 int udp_push(socket_handle_t* h, char* msg) {
     printf("%s", msg);
 
-    if (sendto(h->socket, msg, strlen(msg) , 0 , (struct sockaddr *) &(h->address), sizeof(h->address)) == SOCKET_ERROR) {
+    if (sendto(h->socket, msg, (int)strlen(msg) , 0 , (struct sockaddr *) &(h->address), sizeof(h->address)) == SOCKET_ERROR) {
         printf("sendto() failed with error code : %d" , WSAGetLastError());
         return -1;
 	}
