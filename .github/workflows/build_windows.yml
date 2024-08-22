@@ -16,7 +16,7 @@ jobs:
           cl /W4 /WX iwv_forward.c /link /out:iwv_forward.exe
       - name: Dummy Run
         run: |
-          iwv_forward.exe testdata\IWV.TMP
+          iwv_forward testdata\IWV.TMP
       - name: Store build result
         uses: actions/upload-artifact@v4
         with:
