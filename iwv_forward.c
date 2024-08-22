@@ -14,9 +14,14 @@ errno_t fopen_s(FILE **f, const char *name, const char *mode) {
 
 void init_socks() {}
 
-typedef struct {} socket_handle_t;
+typedef struct {
+    int dummy;
+} socket_handle_t;
 
-socket_handle_t open_socket() { socket_handle_t h = {}; return h; }
+socket_handle_t open_socket() {
+    socket_handle_t h = {0};
+    return h;
+}
 
 int udp_push(socket_handle_t* h, char* msg) {
     printf("%s", msg);
