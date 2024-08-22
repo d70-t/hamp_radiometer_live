@@ -24,6 +24,7 @@ socket_handle_t open_socket() {
 }
 
 int udp_push(socket_handle_t* h, char* msg) {
+    (void) h;
     printf("%s", msg);
     return 0;
 }
