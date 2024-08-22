@@ -213,7 +213,7 @@ typedef struct {
     int count;
     int interval;
     char * target_address;
-    int target_port;
+    u_short target_port;
 } config_t;
 
 void show_help(int argc, char** argv) {
@@ -270,7 +270,7 @@ int parse_args(config_t * config, int argc, char** argv) {
                 printf("missing argument to '-p'");
                 return -1;
             }
-            config->target_port = atoi(argv[i]);
+            config->target_port = (u_short) atoi(argv[i]);
         }
     }
     return 0;
