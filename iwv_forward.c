@@ -23,7 +23,7 @@ errno_t fopen_s(FILE **f, const char *name, const char *mode) {
 #if _MSC_VER
 
 typedef struct {
-    int socket;
+    SOCKET socket;
     struct sockaddr_in address;
 } socket_handle_t;
 
@@ -38,18 +38,24 @@ void init_socks() {
 	printf("Initialised.\n");
 }
 
-socket_handle_t open_socket() {
-    socket_handle_t h;
-	if ( (h.socket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
+int open_socket(socket_handle_t * h) {
+	if ( (h->socket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
 	{
 		printf("socket() failed with error code : %d" , WSAGetLastError());
-		exit(EXIT_FAILURE);
+		return -1;
 	}
-	memset((char *) &h.address, 0, sizeof(h.address));
-	h.address.sin_family = AF_INET;
-	h.address.sin_port = htons(TARGET_PORT);
-	h.address.sin_addr.S_un.S_addr = inet_addr(TARGET_ADDR);
-    return h;
+	memset((char *) &h->address, 0, sizeof(h->address));
+	h->address.sin_family = AF_INET;
+	h->address.sin_port = htons(TARGET_PORT);
+	h->address.sin_addr.S_un.S_addr = inet_addr(TARGET_ADDR);
+
+    if (inet_pton(AF_INET, (PCSTR)(TARGET_ADDR), &h->address.sin_addr.s_addr) < 0) {
+        printf("can't set socket address");
+        closesocket(h->socket);
+        WSACleanup();
+        return -1;
+    }
+    return 0;
 }
 
 void close_socks() {
@@ -74,9 +80,9 @@ typedef struct {
     int dummy;
 } socket_handle_t;
 
-socket_handle_t open_socket() {
-    socket_handle_t h = {0};
-    return h;
+int open_socket(socket_handle_t * h) {
+    (void) h;
+    return 0;
 }
 
 int udp_push(socket_handle_t* h, char* msg) {
@@ -183,7 +189,11 @@ int main(int argc, char** argv) {
     }
 
     init_socks();
-    socket_handle_t sock = open_socket();
+    socket_handle_t sock;
+    if(open_socket(&sock)) {
+        printf("can't open socket!\n");
+        return -1;
+    }
 
     int time;
     float value;
