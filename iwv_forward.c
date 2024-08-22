@@ -12,10 +12,18 @@ errno_t fopen_s(FILE **f, const char *name, const char *mode) {
 }
 #endif
 
-int udp_push(char* msg) {
+void init_socks() {}
+
+typedef struct {} socket_handle_t;
+
+socket_handle_t open_socket() { socket_handle_t h = {}; return h; }
+
+int udp_push(socket_handle_t* h, char* msg) {
     printf("%s", msg);
     return 0;
 }
+
+void close_socks() {}
 
 int is_leap_year(int year) {
     return ((year % 4 == 0) && (year % 100 != 0)) || (year % 400 == 0);
@@ -47,12 +55,7 @@ int days_of_month(int year, int month) {
     return 0;
 }
 
-int main(int argc, char** argv) {
-    if ( argc < 2 ) {
-        printf("too few arguments, need IWV filename!\n");
-        return -1;
-    }
-    char * filename = argv[1];
+int get_iwv_sample(char * filename, int * time, float * value) {
     FILE * handle;
     if(fopen_s(&handle, filename, "rb") != 0) {
         printf("can't open '%s'", filename);
@@ -60,10 +63,14 @@ int main(int argc, char** argv) {
     }
     fseek(handle, 0, SEEK_END);
     long size = ftell(handle);
+
     printf("file size: %ld\n", size);
+
     long packet_count = (size - 24) / 13;
     long last_packet_start = 24 + (packet_count - 1) * 13;
+
     fseek(handle, last_packet_start, SEEK_SET);
+
     unsigned char buffer[13];
     fread(buffer, 13, 1, handle);
     fclose(handle);
@@ -72,9 +79,14 @@ int main(int argc, char** argv) {
         printf("%d ", buffer[i]);
     }
     printf("\n");
-    int time = *((int*)buffer);
-    float value = *((float*)(buffer + 5));
 
+    *time = *((int*)buffer);
+    *value = *((float*)(buffer + 5));
+
+    return 0;
+}
+
+int format_planet(char * textbuffer, int bufsz, int time, float value) {
     int seconds = time % 60;
     int minutes = (time / 60) % 60;
     int hours = (time / (60 * 60)) % 24;
@@ -96,7 +108,30 @@ int main(int argc, char** argv) {
 
     int day = days_left + 1;
 
+    return snprintf(textbuffer, bufsz, "KV,%04d-%02d-%02dT%02d:%02d:%02d,%f\r\n", year, month, day, hours, minutes, seconds, value);
+
+}
+
+int main(int argc, char** argv) {
+    if ( argc < 2 ) {
+        printf("too few arguments, need IWV filename!\n");
+        return -1;
+    }
+
+    init_socks();
+    socket_handle_t sock = open_socket();
+
+    int time;
+    float value;
+    if(get_iwv_sample(argv[1], &time, &value)) {
+        printf("can't read IWV\n");
+        return -1;
+    }
+
     char textbuffer[100];
-    snprintf(textbuffer, 100, "KV,%04d-%02d-%02dT%02d:%02d:%02d,%f\r\n", year, month, day, hours, minutes, seconds, value);
-    udp_push(textbuffer);
+    format_planet(textbuffer, 100, time, value);
+
+    udp_push(&sock, textbuffer);
+
+    close_socks();
 }
