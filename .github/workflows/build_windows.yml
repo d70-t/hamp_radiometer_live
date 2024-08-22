@@ -14,7 +14,7 @@ jobs:
           toolset: 14.0
       - name: Compile
         run: |
-          cl /W4 /WX iwv_forward.c /link /out:iwv_forward.exe
+          cl /W4 /WX /O2 iwv_forward.c /link /out:iwv_forward.exe
       - name: Dummy Run
         run: |
           & .\iwv_forward.exe testdata\IWV.TMP -n 2 -i 1
