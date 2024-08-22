@@ -49,7 +49,7 @@ void init_socks() {
 	printf("Initialised.\n");
 }
 
-int open_socket(socket_handle_t * h) {
+int open_socket(socket_handle_t * h, char* target_address, int target_port) {
 	if ( (h->socket=socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP)) == SOCKET_ERROR)
 	{
 		printf("socket() failed with error code : %d" , WSAGetLastError());
@@ -64,9 +64,9 @@ int open_socket(socket_handle_t * h) {
 
 	memset((char *) &h->address, 0, sizeof(h->address));
 	h->address.sin_family = AF_INET;
-	h->address.sin_port = htons(TARGET_PORT);
+	h->address.sin_port = htons(target_port);
 
-    if (inet_pton(AF_INET, (PCSTR)(TARGET_ADDR), &h->address.sin_addr.s_addr) < 0) {
+    if (inet_pton(AF_INET, (PCSTR)(target_address), &h->address.sin_addr.s_addr) < 0) {
         printf("can't set socket address");
         closesocket(h->socket);
         return -1;
@@ -100,8 +100,10 @@ typedef struct {
     int dummy;
 } socket_handle_t;
 
-int open_socket(socket_handle_t * h) {
+int open_socket(socket_handle_t * h, char* target_address, int target_port) {
     (void) h;
+    (void) target_address;
+    (void) target_port;
     return 0;
 }
 
@@ -210,6 +212,8 @@ typedef struct {
     char * filename;
     int count;
     int interval;
+    char * target_address;
+    int target_port;
 } config_t;
 
 void show_help(int argc, char** argv) {
@@ -220,6 +224,8 @@ void show_help(int argc, char** argv) {
     printf("-h: show help\r\n");
     printf("-n <count>: repeat n times (0 == infinite, default == 1)\r\n");
     printf("-i <interval>: wait i seconds between repetitions (default == 60)\r\n");
+    printf("-a <address>: target IP address (default == 192.168.1.255)\r\n");
+    printf("-p <port>: target UDP port address (default == 5001)\r\n");
 }
 
 int parse_args(config_t * config, int argc, char** argv) {
@@ -231,6 +237,8 @@ int parse_args(config_t * config, int argc, char** argv) {
     config->filename = argv[1];
     config->count = 1;
     config->interval = 60;
+    config->target_address = TARGET_ADDR;
+    config->target_port = TARGET_PORT;
     for(int i = 2; i < argc; ++i) {
         if(strcmp(argv[i], "-h") == 0) {
             show_help(argc, argv);
@@ -249,6 +257,20 @@ int parse_args(config_t * config, int argc, char** argv) {
                 return -1;
             }
             config->interval = atoi(argv[i]);
+        } else if(strcmp(argv[i], "-a") == 0) {
+            ++i;
+            if (i >= argc) {
+                printf("missing argument to '-a'");
+                return -1;
+            }
+            config->target_address = argv[i];
+        } else if(strcmp(argv[i], "-p") == 0) {
+            ++i;
+            if (i >= argc) {
+                printf("missing argument to '-p'");
+                return -1;
+            }
+            config->target_port = atoi(argv[i]);
         }
     }
     return 0;
@@ -258,11 +280,12 @@ int main(int argc, char** argv) {
     config_t config;
     if(parse_args(&config, argc, argv) != 0) { return -1; }
 
-    printf("reading '%s', %d times with %d seconds interval.", config.filename, config.count, config.interval);
+    printf("reading '%s', %d times with %d seconds interval.\r\n", config.filename, config.count, config.interval);
+    printf("sending to %s:%d.\r\n", config.target_address, config.target_port);
 
     init_socks();
     socket_handle_t sock;
-    if(open_socket(&sock)) {
+    if(open_socket(&sock, config.target_address, config.target_port)) {
         printf("can't open socket!\n");
         close_socks();
         return -1;
