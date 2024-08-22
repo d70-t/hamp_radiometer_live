@@ -64,7 +64,7 @@ int open_socket(socket_handle_t * h, char* target_address, int target_port) {
 
 	memset((char *) &h->address, 0, sizeof(h->address));
 	h->address.sin_family = AF_INET;
-	h->address.sin_port = htons(target_port);
+	h->address.sin_port = htons((u_short)target_port);
 
     if (inet_pton(AF_INET, (PCSTR)(target_address), &h->address.sin_addr.s_addr) < 0) {
         printf("can't set socket address");
