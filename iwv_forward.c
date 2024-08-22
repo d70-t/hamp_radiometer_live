@@ -1,10 +1,19 @@
 #include <stdio.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 #if _MSC_VER
+
+#include <Windows.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
+
+#else
+
+#include <unistd.h>
+
 #endif
 
 #define TARGET_ADDR "192.168.1.255"
@@ -72,6 +81,10 @@ int udp_push(socket_handle_t* h, char* msg) {
     return 0;
 }
 
+void _sleep(int seconds) {
+    Sleep(seconds);
+}
+
 #else
 
 void init_socks() {}
@@ -92,6 +105,10 @@ int udp_push(socket_handle_t* h, char* msg) {
 }
 
 void close_socks() {}
+
+void _sleep(int seconds) {
+    usleep(((long)seconds) * 1000000);
+}
 
 #endif
 
@@ -182,11 +199,58 @@ int format_planet(char * textbuffer, int bufsz, int time, float value) {
 
 }
 
-int main(int argc, char** argv) {
+typedef struct {
+    char * filename;
+    int count;
+    int interval;
+} config_t;
+
+void show_help(int argc, char** argv) {
+    printf("IWV forwarder\r\n");
+    printf("-------------\r\n");
+    printf("%s <IWV.TMP filename> [options]\r\n", argv[0]);
+    printf("-h: show help\r\n");
+    printf("-n <count>: repeat n times (0 == infinite, default == 1)\r\n");
+    printf("-i <interval>: wait i seconds between repetitions (default == 60)\r\n");
+}
+
+int parse_args(config_t * config, int argc, char** argv) {
     if ( argc < 2 ) {
-        printf("too few arguments, need IWV filename!\n");
+        printf("too few arguments, need IWV filename!\r\n");
+        show_help(argc, argv);
         return -1;
     }
+    config->filename = argv[1];
+    config->count = 1;
+    config->interval = 60;
+    for(int i = 2; i < argc; ++i) {
+        if(strcmp(argv[i], "-h") == 0) {
+            show_help(argc, argv);
+            return -1;
+        } else if(strcmp(argv[i], "-n") == 0) {
+            ++i;
+            if (i >= argc) {
+                printf("missing argument to '-n'");
+                return -1;
+            }
+            config->count = atoi(argv[i]);
+        } else if(strcmp(argv[i], "-i") == 0) {
+            ++i;
+            if (i >= argc) {
+                printf("missing argument to '-i'");
+                return -1;
+            }
+            config->interval = atoi(argv[i]);
+        }
+    }
+    return 0;
+}
+
+int main(int argc, char** argv) {
+    config_t config;
+    if(parse_args(&config, argc, argv) != 0) { return -1; }
+
+    printf("reading '%s', %d times with %d seconds interval.", config.filename, config.count, config.interval);
 
     init_socks();
     socket_handle_t sock;
@@ -197,15 +261,20 @@ int main(int argc, char** argv) {
 
     int time;
     float value;
-    if(get_iwv_sample(argv[1], &time, &value)) {
-        printf("can't read IWV\n");
-        return -1;
+
+    for(int i = 0; i < config.count || config.count == 0; ++i) {
+        if(get_iwv_sample(config.filename, &time, &value)) {
+            printf("can't read IWV\n");
+        } else {
+            char textbuffer[100];
+            format_planet(textbuffer, 100, time, value);
+            udp_push(&sock, textbuffer);
+        }
+
+        if( i + 1 != config.count ) {
+            _sleep(config.interval);
+        }
     }
-
-    char textbuffer[100];
-    format_planet(textbuffer, 100, time, value);
-
-    udp_push(&sock, textbuffer);
 
     close_socks();
 }
