@@ -55,6 +55,13 @@ int open_socket(socket_handle_t * h) {
 		printf("socket() failed with error code : %d" , WSAGetLastError());
 		return -1;
 	}
+    char broadcast = 1;
+    if (setsockopt(h->socket, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast)) < 0) {
+        printf("can't set broadcast option");
+        closesocket(h->socket);
+        return -1;
+    }
+
 	memset((char *) &h->address, 0, sizeof(h->address));
 	h->address.sin_family = AF_INET;
 	h->address.sin_port = htons(TARGET_PORT);
@@ -62,7 +69,6 @@ int open_socket(socket_handle_t * h) {
     if (inet_pton(AF_INET, (PCSTR)(TARGET_ADDR), &h->address.sin_addr.s_addr) < 0) {
         printf("can't set socket address");
         closesocket(h->socket);
-        WSACleanup();
         return -1;
     }
     return 0;
@@ -258,6 +264,7 @@ int main(int argc, char** argv) {
     socket_handle_t sock;
     if(open_socket(&sock)) {
         printf("can't open socket!\n");
+        close_socks();
         return -1;
     }
 
