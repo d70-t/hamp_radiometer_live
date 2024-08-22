@@ -83,7 +83,7 @@ int udp_push(socket_handle_t* h, char* msg) {
 }
 
 void second_sleep(int seconds) {
-    Sleep(seconds);
+    Sleep(seconds * 1000);
 }
 
 #else
