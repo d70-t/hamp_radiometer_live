@@ -207,6 +207,7 @@ typedef struct {
 } config_t;
 
 void show_help(int argc, char** argv) {
+    (void) argc;
     printf("IWV forwarder\r\n");
     printf("-------------\r\n");
     printf("%s <IWV.TMP filename> [options]\r\n", argv[0]);
