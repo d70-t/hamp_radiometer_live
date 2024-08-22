@@ -1,9 +1,6 @@
 name: Windows Build
 
-on:
-  push:
-  tags:
-    - "v*"
+on: [push]
 
 jobs:
   build:
