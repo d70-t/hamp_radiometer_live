@@ -1,0 +1,19 @@
+name: Windows Build
+
+on: [push]
+
+jobs:
+  build:
+    steps:
+      - name: Configure build for x86
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile
+        run: |
+          cl /W4 iwv_forward.c /link /out:iwv_forward.exe
+      - name: Store build result
+        uses: actions/upload-artifact@v4
+        with:
+          name: build result
+          path: iwv_forward.exe
