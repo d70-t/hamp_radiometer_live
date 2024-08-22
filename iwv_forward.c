@@ -3,6 +3,7 @@
 
 #if _MSC_VER
 #include <winsock2.h>
+#include <ws2tcpip.h>
 #pragma comment(lib,"ws2_32.lib") //Winsock Library
 #endif
 
@@ -47,7 +48,6 @@ int open_socket(socket_handle_t * h) {
 	memset((char *) &h->address, 0, sizeof(h->address));
 	h->address.sin_family = AF_INET;
 	h->address.sin_port = htons(TARGET_PORT);
-	h->address.sin_addr.S_un.S_addr = inet_addr(TARGET_ADDR);
 
     if (inet_pton(AF_INET, (PCSTR)(TARGET_ADDR), &h->address.sin_addr.s_addr) < 0) {
         printf("can't set socket address");
