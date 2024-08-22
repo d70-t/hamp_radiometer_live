@@ -82,7 +82,7 @@ int udp_push(socket_handle_t* h, char* msg) {
     return 0;
 }
 
-void _sleep(int seconds) {
+void second_sleep(int seconds) {
     Sleep(seconds);
 }
 
@@ -107,7 +107,7 @@ int udp_push(socket_handle_t* h, char* msg) {
 
 void close_socks() {}
 
-void _sleep(int seconds) {
+void second_sleep(int seconds) {
     usleep(((long)seconds) * 1000000);
 }
 
@@ -273,7 +273,7 @@ int main(int argc, char** argv) {
         }
 
         if( i + 1 != config.count ) {
-            _sleep(config.interval);
+            second_sleep(config.interval);
         }
     }
 
