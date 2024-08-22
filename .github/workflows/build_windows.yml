@@ -11,7 +11,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-          sdk: 8.1
           toolset: 14.0
       - name: Compile
         run: |
